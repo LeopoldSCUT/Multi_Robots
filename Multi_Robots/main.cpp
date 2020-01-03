@@ -1,14 +1,21 @@
 #include <GL/glut.h>
 #include <cmath>
+#include <cstdio>
+#include <algorithm>
+
+using namespace std;
 
 constexpr auto pi = 3.1415926;
 constexpr auto grid_width = 20;
 constexpr auto grid_length = 20;
 
-static GLdouble pos_x = _int64(grid_width) - 1, pos_y = 5, pos_z = 2, direction = 0;
+static GLdouble pos_x = _int64(grid_width) - 1, pos_y = 5, pos_z = 2;
 static GLdouble unit = 1, step = unit / 5;
+static double rotate_angle = 0, direction = 0, rotate_radius = max(grid_length, grid_width) * unit + 5;
+static double center_x = grid_length * unit / 2, center_y = grid_width * unit / 2;
+
 // grid_flag是地图是否有障碍物的标记数据
-static GLboolean grid_flag[grid_width][grid_length] =
+GLboolean grid_flag[grid_width][grid_length] =
 { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -86,8 +93,6 @@ void map_cube(const double x1, const double x2, const double y1, const double y2
     }
 }
 
-
-
 void reshape(const int width, const int height)
 {
     glViewport(0, 0, GLsizei(width), GLsizei(height));
@@ -98,38 +103,81 @@ void reshape(const int width, const int height)
     glMatrixMode(GL_MODELVIEW);
 }
 
+void robot(const double x, const double y, const double z, const bool is_target)
+{
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (is_target)
+		glColor4d(1.0, 0.0, 0.0, 0.5);
+    else
+        glColor4d(0.0, 0.0, 1.0, 0.5);
+	// TODO: 画个线圈表示视野范围 
+	glBegin(GL_POLYGON);
+    glVertex3d(x, 0.1, z);
+    glVertex3d(x + 0.5 * cos((direction + 15) / 180 * pi), 0.1, z - 0.5 * sin((direction + 15) / 180 * pi));
+    glVertex3d(x + 0.35 * cos(direction / 180 * pi), 0.1, z - 0.35 * sin(direction / 180 * pi));
+    glVertex3d(x + 0.5 * cos((direction - 15) / 180 * pi), 0.1, z - 0.5 * sin((direction - 15) / 180 * pi));
+    glEnd();
+}
+
 void display()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    gluLookAt(pos_x + 6 * cos(direction / 180 * pi), pos_y, pos_z - 6 * sin(direction / 180 * pi),
-        pos_x, 0, pos_z,
+
+	// 旧的镜头转换
+    // gluLookAt(pos_x + 6 * cos(direction / 180 * pi), pos_y, pos_z - 6 * sin(direction / 180 * pi),
+    //     pos_x, 0, pos_z,
+    //     0, 0.5, 0);
+
+    // 新的镜头转换
+    gluLookAt(center_x + rotate_radius * cos(rotate_angle / 180 * pi), 10, center_y + rotate_radius * sin(rotate_angle / 180 * pi),
+        center_x, 0, center_y,
         0, 0.5, 0);
+	
+	// 目标
+    robot(pos_x, pos_y, pos_z, true);
+    // 警察
+    robot(pos_z, pos_y, pos_x, false);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glColor4f(1, 0, 0, 0.5);
-    glBegin(GL_POLYGON);
-    glVertex3d(pos_x, 0.1, pos_z);
-    glVertex3d(pos_x + 0.5 * cos((direction + 15) / 180 * pi), 0.1, pos_z - 0.5 * sin((direction + 15) / 180 * pi));
-    glVertex3d(pos_x + 0.35 * cos(direction / 180 * pi), 0.1, pos_z - 0.35 * sin(direction / 180 * pi));
-    glVertex3d(pos_x + 0.5 * cos((direction - 15) / 180 * pi), 0.1, pos_z - 0.5 * sin((direction - 15) / 180 * pi));
-    glEnd();
 
+	// 绘制地图和障碍物
     for (auto i = 0; i < grid_width; ++i)
         for (auto j = 0; j < grid_length; ++j)
             map_cube(double(_int64(grid_width) - i) * unit, double(_int64(grid_width) - i + 1) * unit, j * unit,
                 double(_int64(j) + 1) * unit, 0, unit, grid_flag[i][j]);
+
 	
     glutSwapBuffers();
 }
 
-void keys(const int key, int x, int y)
+void char_keys(const unsigned char key, int x, int y)
+{
+	// A/D 控制地图左右水平旋转
+	// TODO: W/S控制地图视角上下
+	switch (key)
+	{
+    case 'A':
+    case 'a':
+		rotate_angle += 5;
+		break;
+    case 'D':
+    case 'd':
+        rotate_angle -= 5;
+		break;
+    default:
+		break;
+	}
+    display();
+}
+
+void direct_keys(const int key, int x, int y)
 {
 	auto ready_x = pos_x, ready_z = pos_z;
     // 上下方向键控制前进和后退，左右键控制左右转向
-    switch (key) {
+    switch (key)
+	{
     case GLUT_KEY_UP:
-        ready_x -= step * cos(direction / 180 * pi);
+    	ready_x -= step * cos(direction / 180 * pi);
         ready_z += step * sin(direction / 180 * pi);
         break;
     case GLUT_KEY_DOWN:
@@ -145,10 +193,13 @@ void keys(const int key, int x, int y)
     default:
         break;
     }
-    if (!grid_flag[int(grid_width - floor(ready_x))][int(floor(ready_z))]) {
+    if (!grid_flag[int(grid_width - floor(ready_x))][int(floor(ready_z))])
+    {
         pos_x = ready_x;
         pos_z = ready_z;
     }
+
+    printf("X: %f, Y: %f, Z: %f\n", pos_x, pos_y, pos_z);
     display();
 }
 
@@ -162,7 +213,8 @@ int main(int argc, char* argv[])
     glutReshapeFunc(&reshape);
     glutDisplayFunc(&display);
     glutIdleFunc(&display);
-    glutSpecialFunc(&keys);
+    glutKeyboardFunc(&char_keys);
+    glutSpecialFunc(&direct_keys);
     glutMainLoop();
     return 0;
 }
