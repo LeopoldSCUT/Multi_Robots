@@ -7,17 +7,21 @@ class Police
 {
 public:
 	// 速度
-	static constexpr double v_police = 0.001;
+	static constexpr double v_police = 0.004;
 	// 渲染对象的半径
-	static constexpr double r = 1.0;
+	static constexpr double r = 0.5;
 	// 警戒半径
-	static constexpr double alert_threshold = 200.0;
+	static constexpr double alert_threshold = 2.5;
 	// 视野半径
-	static constexpr double view_threshold = 200.0;
+	static constexpr double view_threshold = 3.5;
 	// 最后一次更新的位置
 	static double last_found_pos[2];
 	// 是否召集其他警察前往last_found_pos
 	static bool all_action;
+	// 警察编号
+	int id;
+	// 警察目标偏移
+	double offset[2];
 	// 位置
 	double pos[2];
 	// 出生位置
@@ -27,12 +31,34 @@ public:
 	int curr_status, last_status;
 
 public:
-	Police(const double x, const double z)
+	Police(const double x, const double z, const int id)
 	{
 		this->pos[0] = x;
 		this->pos[1] = z;
 		this->origin_pos[0] = x;
 		this->origin_pos[1] = z;
+		this->id = id;
+		switch (this->id)
+		{
+		case 0:
+			offset[0] = 0;
+			offset[1] = -2*r;
+			break;
+		case 1:
+			offset[0] = -2*r;
+			offset[1] = 0;
+			break;
+		case 2:
+			offset[0] = 0;
+			offset[1] = +2*r;
+			break;
+		case 3:
+			offset[0] = +2*r;
+			offset[1] = 0;
+			break;
+		default:
+			break;
+		}
 		this->curr_status = PATROL;
 		this->last_status = this->curr_status;
 	}
@@ -50,27 +76,16 @@ public:
 
 	bool checkBarrier(const double dx, const double dz, const bool grid_flag[20][20])
 	{
-		int x = this->pos[0] + dx, z = this->pos[1] + dz;
-		/*if (dx != 0)
-		{
-			x = this->pos[0] + dx + (dx / abs(dx)) * r;
-		}
-		if (dz != 0)
-		{
-			z = this->pos[1] + dz + (dz / abs(dz)) * r;
-		}*/
-		cout << dz << endl;
+		double x = this->pos[0] + dx, z = this->pos[1] + dz;
 		if (grid_flag[int(20 - floor(x + r))][int(floor(z + r))] || grid_flag[int(20 - floor(x - r))][int(floor(z + r))]
 			|| grid_flag[int(20 - floor(x + r))][int(floor(z - r))] || grid_flag[int(20 - floor(x - r))][int(floor(z - r))])
 		{
-			cout << "True" << endl;
 			return true;
 		}
 		else
 		{
 			return false;
 		}
-		//return grid_flag[int(20 - floor(x))][int(floor(z))];
 	}
 
 	void patrol()
@@ -130,7 +145,7 @@ public:
 		{
 			dx = this->v_police * (last_found_pos[0] - this->pos[0]) / getDistance(last_found_pos);
 			dz = this->v_police * (last_found_pos[1] - this->pos[1]) / getDistance(last_found_pos);
-			if (getDistance(last_found_pos) < 0.1) 
+			if (getDistance(last_found_pos) < 0.1)
 			{
 				all_action = false;
 			}
@@ -145,17 +160,14 @@ public:
 			// 实时更新最后发现位置
 			last_found_pos[0] = thief_pos[0];
 			last_found_pos[1] = thief_pos[1];
-			dx = this->v_police * (thief_pos[0] - this->pos[0]) / dis;
-			dz = this->v_police * (thief_pos[1] - this->pos[1]) / dis;
+			dx = this->v_police * (thief_pos[0] - (this->pos[0] + offset[0])) / dis;
+			dz = this->v_police * (thief_pos[1] - (this->pos[1] + offset[1])) / dis;
 		}
 
 		/* 3. 处理静态障碍物and小偷的碰撞 */
 		// 已经计算出期望的dx和dy，检测是否需要避障
 		if (checkBarrier(dx, dz, grid_flag))
 		{
-			static auto cnt = 0;
-			auto x_ba = checkBarrier(v_police * dx / abs(dx), 0, grid_flag);
-			auto z_ba = checkBarrier(0, v_police * dz / abs(dz), grid_flag);
 			if (dx != 0 && !checkBarrier(v_police * dx / fabs(dx), 0, grid_flag))
 			{
 				dx = v_police * dx / fabs(dx);
@@ -168,9 +180,10 @@ public:
 			}
 			else
 			{
-				cout << "123123123" << endl;
+				dx = 0;
+				dz = 0;
+				cout << "ERROR" << endl;
 			}
-			//cout << cnt++ << " Barrier: " << x_ba << z_ba << endl;
 		}
 
 

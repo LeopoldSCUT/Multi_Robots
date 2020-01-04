@@ -48,13 +48,17 @@ bool grid_flag[grid_width][grid_length] =
 void simulationInit()
 {
     srand(time(nullptr));
-    thief = new Thief(10, 8, grid_flag);
-    // thief->pos[0] = 18;
-    // thief->pos[1] = 3;
-    // police_0 = new Police(11, 3);
-    // police_1 = new Police(11, 3);
-    // police_2 = new Police(11, 3);
-    // police_3 = new Police(11, 3);
+    double init_pos[2];
+    do
+    {
+        init_pos[0] = double(rand() % 20) + 0.5;
+        init_pos[1] = double(rand() % 20) + 0.5;
+    } while (grid_flag[int(20 - floor(init_pos[0]))][int(floor(init_pos[1]))]);
+    thief = new Thief(init_pos[0], init_pos[1], grid_flag);
+    police_0 = new Police(11, 3, 0);
+    police_1 = new Police(3, 10, 1);
+    police_2 = new Police(11, 17, 2);
+    police_3 = new Police(17, 10, 3);
 
 }
 
@@ -129,30 +133,40 @@ void robot(const double x, const double y, const double z, const bool is_target)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     if (is_target)
     {
-		glColor4d(1.0, 0.0, 0.0, 0.5);
+        glColor4d(1.0, 0.0, 0.0, 0.5);
         glBegin(GL_POLYGON);
         for (int i = 0; i < 1000; i++)
         {
             glVertex3f(x + 0.5 * cos(2 * pi * i / 1000), 0.1, z + 0.5 * sin(2 * pi * i / 1000));   //定义顶点
         }
-        // glVertex3d(x, 0.1, z);
-        // glVertex3d(x + 0.5 * cos((direction + 15) / 180 * pi), 0.1, z - 0.5 * sin((direction + 15) / 180 * pi));
-        // glVertex3d(x + 0.35 * cos(direction / 180 * pi), 0.1, z - 0.35 * sin(direction / 180 * pi));
-        // glVertex3d(x + 0.5 * cos((direction - 15) / 180 * pi), 0.1, z - 0.5 * sin((direction - 15) / 180 * pi));
         glEnd();
+        /*glVertex3d(x, 0.1, z);
+        glVertex3d(x + 0.5 * cos((direction + 15) / 180 * pi), 0.1, z - 0.5 * sin((direction + 15) / 180 * pi));
+        glVertex3d(x + 0.35 * cos(direction / 180 * pi), 0.1, z - 0.35 * sin(direction / 180 * pi));
+        glVertex3d(x + 0.5 * cos((direction - 15) / 180 * pi), 0.1, z - 0.5 * sin((direction - 15) / 180 * pi));*/
+        
     }
     else
     {
-        glColor4d(0.0, 0.0, 1.0, 0.5);
+        glColor4d(0.0, 0.0, 1.0, 0.2);
         glBegin(GL_POLYGON);
         for (int i = 0; i < 1000; i++)
         {
-            glVertex3f(x + 1 * cos(2 * pi * i / 1000), 0.1, z + 1 * sin(2 * pi * i / 1000));   //定义顶点
+            glVertex3f(x + Police::r * cos(2 * pi * i / 1000), 0.1, z + Police::r * sin(2 * pi * i / 1000));   //定义顶点
+        }
+        glEnd();
+
+        glColor4d(0.0, 0.95, 1.0, 1.0);
+        glLineWidth(1);
+        glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < 1000; i++)
+        {
+            glVertex3f(x + Police::alert_threshold * cos(2 * pi * i / 1000), 0.1, z + Police::alert_threshold * sin(2 * pi * i / 1000));   //定义顶点
         }
         glEnd();
     }
-	// TODO: 画个线圈表示视野范围 
-	
+    // TODO: 画个线圈表示视野范围 
+
 }
 
 void display()
@@ -160,65 +174,74 @@ void display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 
-	// 旧的镜头转换
+    // 旧的镜头转换
     // gluLookAt(pos_x + 6 * cos(direction / 180 * pi), pos_y, pos_z - 6 * sin(direction / 180 * pi),
     //     pos_x, 0, pos_z,
     //     0, 0.5, 0);
 
     // 新的镜头转换
-    gluLookAt(center_x + rotate_radius * cos(rotate_angle / 180 * pi), 10, center_y + rotate_radius * sin(rotate_angle / 180 * pi),
+    gluLookAt(center_x + rotate_radius * cos(rotate_angle / 180 * pi), 15, center_y + rotate_radius * sin(rotate_angle / 180 * pi),
         center_x, 0, center_y,
         0, 0.5, 0);
 
-    double po_pos[4][2] = {};
-    int po_state[4] = {};
+    double po_pos[4][2] = { {police_0->pos[0], police_0->pos[1]},
+                            {police_1->pos[0], police_1->pos[1]},
+                            {police_2->pos[0], police_2->pos[1]},
+                            {police_3->pos[0], police_3->pos[1]} };
+    int po_state[4] = { police_0->curr_status,  police_1->curr_status, police_2->curr_status, police_3->curr_status };
     thief->update(po_pos, po_state);
-    // police_0->move(thief->pos, grid_flag);
+    police_0->move(thief->pos, grid_flag);
+    police_1->move(thief->pos, grid_flag);
+    police_2->move(thief->pos, grid_flag);
+    police_3->move(thief->pos, grid_flag);
+
     //cout << police_0->curr_status << endl;
 
-	// 目标
+    // 目标
     robot(thief->pos[0], pos_y, thief->pos[1], true);
     // 警察
-    // robot(police_0->pos[0], pos_y, police_0->pos[1], false);
+    robot(police_0->pos[0], pos_y, police_0->pos[1], false);
+    robot(police_1->pos[0], pos_y, police_1->pos[1], false);
+    robot(police_2->pos[0], pos_y, police_2->pos[1], false);
+    robot(police_3->pos[0], pos_y, police_3->pos[1], false);
 
-	// 绘制地图和障碍物
+    // 绘制地图和障碍物
     for (auto i = 0; i < grid_width; ++i)
         for (auto j = 0; j < grid_length; ++j)
             map_cube(double(_int64(grid_width) - i) * unit, double(_int64(grid_width) - i + 1) * unit, j * unit,
                 double(_int64(j) + 1) * unit, 0, unit, grid_flag[i][j]);
 
-	
+
     glutSwapBuffers();
 }
 
 void char_keys(const unsigned char key, int x, int y)
 {
-	// A/D 控制地图左右水平旋转
-	// TODO: W/S控制地图视角上下
-	switch (key)
-	{
+    // A/D 控制地图左右水平旋转
+    // TODO: W/S控制地图视角上下
+    switch (key)
+    {
     case 'A':
     case 'a':
-		rotate_angle += 5;
-		break;
+        rotate_angle += 5;
+        break;
     case 'D':
     case 'd':
         rotate_angle -= 5;
-		break;
+        break;
     default:
-		break;
-	}
-    cout << thief->pos[0] << " " << thief->pos[1] << endl;
+        break;
+    }
 }
 
 void direct_keys(const int key, int x, int y)
 {
-	auto ready_x = thief->pos[0], ready_z = thief->pos[1];
+    auto ready_x = thief->pos[0], ready_z = thief->pos[1];
     // 上下方向键控制前进和后退，左右键控制左右转向
     switch (key)
-	{
+    {
     case GLUT_KEY_UP:
-    	ready_x -= step * cos(direction / 180 * pi);
+        ready_x -= step * cos(direction / 180 * pi);
         ready_z += step * sin(direction / 180 * pi);
         break;
     case GLUT_KEY_DOWN:
@@ -240,7 +263,7 @@ void direct_keys(const int key, int x, int y)
         thief->pos[1] = ready_z;
     }
 
-    printf("X: %f, Y: %f, Z: %f\n", thief->pos[0], pos_y, thief->pos[1]);
+    //printf("X: %f, Y: %f, Z: %f\n", thief->pos[0], pos_y, thief->pos[1]);
 }
 
 int main(int argc, char* argv[])

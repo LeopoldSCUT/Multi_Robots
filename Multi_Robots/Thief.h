@@ -9,7 +9,7 @@ private:
 	// 地图
 	bool grid_flag_[20][20];
 	// 速度
-	static constexpr double v_thief= 0.1;
+	static constexpr double v_thief= 0.007;
 	// 渲染对象的半径
 	static constexpr double r = 0.5;
 	// 被捕半径
@@ -135,6 +135,8 @@ public:
 			}
 			else
 			{
+				dx = 0;
+				dz = 0;
 				printf("other situation\n");
 			}
 		}
