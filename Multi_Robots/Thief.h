@@ -10,6 +10,8 @@ private:
 	bool grid_flag_[20][20];
 	// 速度
 	static constexpr double v_thief= 0.1;
+	// 渲染对象的半径
+	static constexpr double r = 0.5;
 	// 被捕半径
 	static constexpr double hunt_threshold = 0.5;
 	// 被发现后需要逃往的位置
@@ -24,6 +26,28 @@ private:
 	double get_dis(const double x, const double z)
 	{
 		return sqrt(pow(x - this->pos[0], 2) + pow(z - this->pos[1], 2));
+	}
+	
+	bool check_barrier(const double dx, const double dz)
+	{
+		double x = pos[0] + dx, z = pos[1] + dz;
+		/*if (dx != 0)
+		{
+			x = this->pos[0] + dx + (dx / abs(dx)) * r;
+		}
+		if (dz != 0)
+		{
+			z = this->pos[1] + dz + (dz / abs(dz)) * r;
+		}*/
+		if (grid_flag_[int(20 - floor(x + r))][int(floor(z + r))] || grid_flag_[int(20 - floor(x - r))][int(floor(z + r))]
+			|| grid_flag_[int(20 - floor(x + r))][int(floor(z - r))] || grid_flag_[int(20 - floor(x - r))][int(floor(z - r))])
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 	
 public:
@@ -65,8 +89,9 @@ public:
 
 				do
 				{
-					tar_pos[0] = (rand() % 19) + 1;
-					tar_pos[1] = (rand() % 19) + 1;	
+					tar_pos[0] = double(rand() % 20) + 0.5;
+					tar_pos[1] = double(rand() % 20) + 0.5;
+					printf("again\n");
 				}
 				while (grid_flag_[int(20 - floor(tar_pos[0]))][int(floor(tar_pos[1]))]);
 				at_new_pos = false;
@@ -76,7 +101,7 @@ public:
 			dx = v_thief * (tar_pos[0] - this->pos[0]) / dis;
 			dz = v_thief * (tar_pos[1] - this->pos[1]) / dis;
 			
-			at_new_pos = dis <= 0.5;
+			at_new_pos = dis <= 1;
 			break;
 		case 1:
 			// 跑路
@@ -94,27 +119,27 @@ public:
 			break;
 		}
 		
-		ready_x = pos[0] + dx;
-		ready_z = pos[1] + dz;
-		if (grid_flag_[int(20 - floor(ready_x))][int(floor(ready_z))])
+		// ready_x = pos[0] + dx;
+		// ready_z = pos[1] + dz;
+		if (check_barrier(dx, dz))
 		{
-			if (!grid_flag_[int(20 - floor(ready_x))][int(floor(ready_z - dz))])
+			if (!check_barrier(dx, 0))
 			{
-				ready_x = pos[0] + 0.5 * v_thief;
-				ready_z -= dz;
+				dx = v_thief;
+				dz = 0;
 			}
-			else if (!grid_flag_[int(20 - floor(ready_x - dx))][int(floor(ready_z))])
+			else if (!check_barrier(0, dz))
 			{
-				ready_x -= dx;
-				ready_z = pos[1] + 0.5 * v_thief * dz / abs(dz);
+				dx = 0;
+				dz = v_thief;
 			}
 			else
 			{
 				printf("other situation\n");
 			}
 		}
-		pos[0] = ready_x;
-		pos[1] = ready_z;
+		pos[0] += dx;
+		pos[1] += dz;
 		// printf("X: %f Z: %f\n", pos[0], pos[1]);
 	}
 	

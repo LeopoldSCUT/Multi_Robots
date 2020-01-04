@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
+#include <ctime>
 #include "Police.h"
 #include "Thief.h"
 using namespace std;
@@ -46,13 +47,14 @@ bool grid_flag[grid_width][grid_length] =
 
 void simulationInit()
 {
-    thief = new Thief();
-    thief->pos[0] = 18;
-    thief->pos[1] = 3;
-    police_0 = new Police(11, 3);
-    //police_1 = new Police(11, 3);
-    //police_2 = new Police(11, 3);
-    //police_3 = new Police(11, 3);
+    srand(time(nullptr));
+    thief = new Thief(10, 8, grid_flag);
+    // thief->pos[0] = 18;
+    // thief->pos[1] = 3;
+    // police_0 = new Police(11, 3);
+    // police_1 = new Police(11, 3);
+    // police_2 = new Police(11, 3);
+    // police_3 = new Police(11, 3);
 
 }
 
@@ -129,14 +131,14 @@ void robot(const double x, const double y, const double z, const bool is_target)
     {
 		glColor4d(1.0, 0.0, 0.0, 0.5);
         glBegin(GL_POLYGON);
-        //for (int i = 0; i < 1000; i++)
-        //{
-         //   glVertex3f(x + 0.5 * cos(2 * pi * i / 1000), 0.1, z + 0.5 * sin(2 * pi * i / 1000));   //定义顶点
-        //}
-        glVertex3d(x, 0.1, z);
-        glVertex3d(x + 0.5 * cos((direction + 15) / 180 * pi), 0.1, z - 0.5 * sin((direction + 15) / 180 * pi));
-        glVertex3d(x + 0.35 * cos(direction / 180 * pi), 0.1, z - 0.35 * sin(direction / 180 * pi));
-        glVertex3d(x + 0.5 * cos((direction - 15) / 180 * pi), 0.1, z - 0.5 * sin((direction - 15) / 180 * pi));
+        for (int i = 0; i < 1000; i++)
+        {
+            glVertex3f(x + 0.5 * cos(2 * pi * i / 1000), 0.1, z + 0.5 * sin(2 * pi * i / 1000));   //定义顶点
+        }
+        // glVertex3d(x, 0.1, z);
+        // glVertex3d(x + 0.5 * cos((direction + 15) / 180 * pi), 0.1, z - 0.5 * sin((direction + 15) / 180 * pi));
+        // glVertex3d(x + 0.35 * cos(direction / 180 * pi), 0.1, z - 0.35 * sin(direction / 180 * pi));
+        // glVertex3d(x + 0.5 * cos((direction - 15) / 180 * pi), 0.1, z - 0.5 * sin((direction - 15) / 180 * pi));
         glEnd();
     }
     else
@@ -167,15 +169,17 @@ void display()
     gluLookAt(center_x + rotate_radius * cos(rotate_angle / 180 * pi), 10, center_y + rotate_radius * sin(rotate_angle / 180 * pi),
         center_x, 0, center_y,
         0, 0.5, 0);
-	
 
-    police_0->move(thief->pos, grid_flag);
+    double po_pos[4][2] = {};
+    int po_state[4] = {};
+    thief->update(po_pos, po_state);
+    // police_0->move(thief->pos, grid_flag);
     //cout << police_0->curr_status << endl;
 
 	// 目标
     robot(thief->pos[0], pos_y, thief->pos[1], true);
     // 警察
-    robot(police_0->pos[0], pos_y, police_0->pos[1], false);
+    // robot(police_0->pos[0], pos_y, police_0->pos[1], false);
 
 	// 绘制地图和障碍物
     for (auto i = 0; i < grid_width; ++i)
@@ -204,6 +208,7 @@ void char_keys(const unsigned char key, int x, int y)
     default:
 		break;
 	}
+    cout << thief->pos[0] << " " << thief->pos[1] << endl;
 }
 
 void direct_keys(const int key, int x, int y)
