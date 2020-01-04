@@ -5,15 +5,19 @@
 class Police
 {
 public:
-	// 警察的速度
+	// 速度
 	static constexpr double v_police = 0.8;
-	// 警察对象的半径
+	// 渲染对象的半径
 	static constexpr double r = 1.0;
-	// 警察的检测半径
-	static constexpr double monitor_threshold = 3.0;
-	// 警察的位置
+	// 警戒半径
+	static constexpr double alert_threshold = 3.0;
+	// 视野半径
+	static constexpr double view_threshold = 2.0;
+	// 最后一次更新的位置
+	static double last_found_pos[2];
+	// 位置
 	double pos[2];
-	// 警察的状态 0-监视 1-追捕
+	// 状态 0-巡逻 1-赶路 2-追捕
 	int status;
 
 	Police(const double x, const double z)
@@ -23,10 +27,6 @@ public:
 		status = 0;
 	}
 
-	void walkAround()
-	{
-
-	}
 
 	double getDistance(const Thief& theft)
 	{
@@ -34,33 +34,56 @@ public:
 			+ pow(theft.pos[1] - this->pos[1], 2));
 	}
 
-	bool checkBarrier()
+	bool checkBarrier(const double dx, const double dz, bool grid_flag[20][20])
 	{
-		return true;
+		
+		return false;
 	}
 
-
-	void move(const Thief& theft)
+	void patrol()
 	{
-		const double dis = getDistance(theft);
-		if (dis <= monitor_threshold)
+		return;
+	}
+
+	void move(const Thief& thief, bool grid_flag[20][20])
+	{
+		const double dis = getDistance(thief);
+		double dx = 0;
+		double dz = 0;
+		double direction = 0;
+
+		// 检测是否在警戒范围内
+		if (dis <= alert_threshold)
+		{
+			this->status = 2;
+		}
+		if (dis >= view_threshold)
+		{
+
+		}
+
+
+
+		if (this->status == 0)
+		{
+			patrol();
+		}
+		else if (this->status == 1)
+		{
+
+		}
+		else if (this->status == 2)
 		{
 			// 开始围捕，计算移动方向
 
 
 			// 检测是否需要避障
-			if (checkBarrier())
+			if (checkBarrier(dx, dz, grid_flag))
 			{
 
 			}
-			return;
 		}
-		else
-		{
-			// 保持不动
-			return;
-		}
+		return;
 	}
-
 };
 
