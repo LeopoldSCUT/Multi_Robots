@@ -14,7 +14,7 @@ static GLdouble unit = 1, step = unit / 5;
 static double rotate_angle = 0, direction = 0, rotate_radius = max(grid_length, grid_width) * unit + 5;
 static double center_x = grid_length * unit / 2, center_y = grid_width * unit / 2;
 
-// grid_flag是地图是否有障碍物的标记数据
+// grid_flag是地图是否有障碍物的标记数据 test
 GLboolean grid_flag[grid_width][grid_length] =
 { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
