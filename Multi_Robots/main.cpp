@@ -2,6 +2,9 @@
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
+#include <ctime>
+#include "Police.h"
+#include "Thief.h"
 
 using namespace std;
 
@@ -14,8 +17,14 @@ static GLdouble unit = 1, step = unit / 5;
 static double rotate_angle = 0, direction = 0, rotate_radius = max(grid_length, grid_width) * unit + 5;
 static double center_x = grid_length * unit / 2, center_y = grid_width * unit / 2;
 
+Thief* thief = nullptr;
+Police* police_0 = nullptr;
+Police* police_1 = nullptr;
+Police* police_2 = nullptr;
+Police* police_3 = nullptr;
+
 // grid_flag是地图是否有障碍物的标记数据 test
-GLboolean grid_flag[grid_width][grid_length] =
+bool grid_flag[grid_width][grid_length] =
 { {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -36,6 +45,19 @@ GLboolean grid_flag[grid_width][grid_length] =
  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
  {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1} };
+
+void simulation_init()
+{
+    srand(time(nullptr));
+    thief = new Thief(12, 10, grid_flag);
+    // thief->pos[0] = 19;
+    // thief->pos[1] = 2;
+    police_0 = new Police(19, 2);
+    police_1 = new Police(19, 2);
+    police_2 = new Police(19, 2);
+    police_3 = new Police(19, 2);
+
+}
 
 void polygon(double(*vertices)[3], const int a, const int b, const int c, const int d)
 {
@@ -133,11 +155,23 @@ void display()
     gluLookAt(center_x + rotate_radius * cos(rotate_angle / 180 * pi), 10, center_y + rotate_radius * sin(rotate_angle / 180 * pi),
         center_x, 0, center_y,
         0, 0.5, 0);
+
+    double police_pos[4][2] = { 
+    	{police_0->pos[0], police_0->pos[1]},
+    	{police_1->pos[0], police_1->pos[1]},
+    	{police_2->pos[0], police_2->pos[1]},
+    	{police_3->pos[0], police_3->pos[1]} };
+    int police_state[4] = { police_0->status, police_1->status, police_2->status, police_3->status };
+
+    thief->update(police_pos, police_state);
 	
 	// 目标
-    robot(pos_x, pos_y, pos_z, true);
+    robot(thief->pos[0], pos_y, thief->pos[1], true);
     // 警察
-    robot(pos_z, pos_y, pos_x, false);
+    robot(police_0->pos[0], pos_y, police_0->pos[1], false);
+    robot(police_1->pos[0], pos_y, police_1->pos[1], false);
+    robot(police_2->pos[0], pos_y, police_2->pos[1], false);
+    robot(police_3->pos[0], pos_y, police_3->pos[1], false);
 
 
 	// 绘制地图和障碍物
@@ -167,6 +201,7 @@ void char_keys(const unsigned char key, int x, int y)
     default:
 		break;
 	}
+    printf("X: %f, Z: %f\n", thief->pos[0], thief->pos[1]);
     display();
 }
 
@@ -199,12 +234,12 @@ void direct_keys(const int key, int x, int y)
         pos_z = ready_z;
     }
 
-    printf("X: %f, Y: %f, Z: %f\n", pos_x, pos_y, pos_z);
     display();
 }
 
 int main(int argc, char* argv[])
 {
+    simulation_init();
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glutInitWindowSize(800, 800);
