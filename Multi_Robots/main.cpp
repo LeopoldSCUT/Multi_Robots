@@ -14,7 +14,7 @@ constexpr auto grid_length = 20;
 static GLdouble pos_x = _int64(grid_width) - 1, pos_y = 5, pos_z = 2;
 static GLdouble unit = 1, step = unit / 6;
 static double rotate_angle = 0, direction = 0, rotate_radius = max(grid_length, grid_width) * unit + 5;
-static double center_x = grid_length * unit / 2, center_y = grid_width * unit / 2;
+static double center_x = grid_length * unit / 2 + 1, center_z = grid_width * unit / 2;
 
 Thief* thief = NULL;
 Police* police_0 = NULL;
@@ -53,7 +53,8 @@ void simulationInit()
     {
         init_pos[0] = double(rand() % 20) + 0.5;
         init_pos[1] = double(rand() % 20) + 0.5;
-    } while (grid_flag[int(20 - floor(init_pos[0]))][int(floor(init_pos[1]))]);
+    } 
+    while (grid_flag[int(20 - floor(init_pos[0]))][int(floor(init_pos[1]))]);
     thief = new Thief(init_pos[0], init_pos[1], grid_flag);
     police_0 = new Police(11, 3, 0);
     police_1 = new Police(3, 10, 1);
@@ -180,8 +181,8 @@ void display()
     //     0, 0.5, 0);
 
     // 新的镜头转换
-    gluLookAt(center_x + rotate_radius * cos(rotate_angle / 180 * pi), 15, center_y + rotate_radius * sin(rotate_angle / 180 * pi),
-        center_x, 0, center_y,
+    gluLookAt(center_x + rotate_radius * cos(rotate_angle / 180 * pi), 15, center_z + rotate_radius * sin(rotate_angle / 180 * pi),
+        center_x, 0, center_z,
         0, 0.5, 0);
 
     double po_pos[4][2] = { {police_0->pos[0], police_0->pos[1]},
