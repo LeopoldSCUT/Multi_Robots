@@ -57,10 +57,22 @@ void simulationInit()
     while (grid_flag[int(20 - floor(init_pos[0]))][int(floor(init_pos[1]))]);
     thief = new Thief(init_pos[0], init_pos[1], grid_flag);
     police_0 = new Police(11, 3, 0);
-    police_1 = new Police(3, 10, 1);
+    police_1 = new Police(4, 10, 1);
     police_2 = new Police(11, 17, 2);
-    police_3 = new Police(17, 10, 3);
+    police_3 = new Police(18, 10, 3);
 
+}
+
+
+void leaderClear(Police* police_0, Police* police_1, Police* police_2, Police* police_3)
+{
+    if (police_0->curr_status == Police::RETURN &&
+        police_1->curr_status == Police::RETURN &&
+        police_2->curr_status == Police::RETURN &&
+        police_3->curr_status == Police::RETURN)
+    {
+        Police::leader = -1;
+    }
 }
 
 void polygon(double(*vertices)[3], const int a, const int b, const int c, const int d)
@@ -138,7 +150,7 @@ void robot(const double x, const double y, const double z, const bool is_target)
         glBegin(GL_POLYGON);
         for (int i = 0; i < 1000; i++)
         {
-            glVertex3f(x + 0.5 * cos(2 * pi * i / 1000), 0.1, z + 0.5 * sin(2 * pi * i / 1000));   //定义顶点
+            glVertex3f(x + Thief::r * cos(2 * pi * i / 1000), 0.1, z + Thief::r * sin(2 * pi * i / 1000));   //定义顶点
         }
         glEnd();
         /*glVertex3d(x, 0.1, z);
@@ -191,12 +203,19 @@ void display()
                             {police_3->pos[0], police_3->pos[1]} };
     int po_state[4] = { police_0->curr_status,  police_1->curr_status, police_2->curr_status, police_3->curr_status };
     thief->update(po_pos, po_state);
+
+    // 基本策略
     police_0->move(thief->pos, grid_flag);
     police_1->move(thief->pos, grid_flag);
     police_2->move(thief->pos, grid_flag);
     police_3->move(thief->pos, grid_flag);
 
-    //cout << police_0->curr_status << endl;
+    // 基于单领航多包围的双策略围捕
+    /*police_0->advancedMove(thief->pos, grid_flag);
+    police_1->advancedMove(thief->pos, grid_flag);
+    police_2->advancedMove(thief->pos, grid_flag);
+    police_3->advancedMove(thief->pos, grid_flag);
+    leaderClear(police_0, police_1, police_2, police_3);*/
 
     // 目标
     robot(thief->pos[0], pos_y, thief->pos[1], true);

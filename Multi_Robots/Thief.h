@@ -1,7 +1,9 @@
 #pragma once
 #include <cmath>
 #include <cstdio>
-
+#include <iostream>
+#include "GL/glut.h"
+using namespace std;
 
 class Thief
 {
@@ -9,11 +11,9 @@ private:
 	// 地图
 	bool grid_flag_[20][20];
 	// 速度
-	static constexpr double v_thief= 0.007;
-	// 渲染对象的半径
-	static constexpr double r = 0.5;
+	static constexpr double v_thief= 0.008;
 	// 被捕半径
-	static constexpr double hunt_threshold = 0.5;
+	static constexpr double hunt_threshold = 1.1;
 	// 被发现后需要逃往的位置
 	double escape_pos_[2];
 	// 警察的位置
@@ -22,7 +22,11 @@ private:
 	double police_dis_[4];
 	// 记录上下左右哪个方向被警察堵住，+Z,+X,-Z,-X
 	bool lock_[4] = {};
-	
+	// 记录目标点与当前点的相对位置
+	int tar_state_[3] = {};
+
+	static constexpr double pi = 3.1415926;
+
 	double get_dis(const double x, const double z)
 	{
 		return sqrt(pow(x - this->pos[0], 2) + pow(z - this->pos[1], 2));
@@ -31,14 +35,6 @@ private:
 	bool check_barrier(const double dx, const double dz)
 	{
 		double x = pos[0] + dx, z = pos[1] + dz;
-		/*if (dx != 0)
-		{
-			x = this->pos[0] + dx + (dx / abs(dx)) * r;
-		}
-		if (dz != 0)
-		{
-			z = this->pos[1] + dz + (dz / abs(dz)) * r;
-		}*/
 		if (grid_flag_[int(20 - floor(x + r))][int(floor(z + r))] || grid_flag_[int(20 - floor(x - r))][int(floor(z + r))]
 			|| grid_flag_[int(20 - floor(x + r))][int(floor(z - r))] || grid_flag_[int(20 - floor(x - r))][int(floor(z - r))])
 		{
@@ -49,8 +45,68 @@ private:
 			return false;
 		}
 	}
+
+	bool check_lock(const double dx, const double dz)
+	{
+		if (abs(dx) < dz && dz >= 0)
+		{
+			// +Z
+			return lock_[0];
+		}
+		else if (abs(dx) < -dz && dz < 0)
+		{
+			// -Z
+			return lock_[2];
+		}
+		else if (dx > abs(dz) && dx >= 0)
+		{
+			// +X
+			return lock_[1];
+		}
+		else if (-dx > abs(dz) && dx < 0)
+		{
+			// -X
+			return lock_[3];
+		}
+	}
+
+	bool update_tar_state(const double dx, const double dz)
+	{
+		if (tar_state_[0] == tar_state_[2] && tar_state_[0] != tar_state_[1] && tar_state_[0] != 0)
+		{
+			tar_state_[0] = tar_state_[1] = tar_state_[2] = 0;
+			return false;
+		}
+		else
+		{
+			tar_state_[0] = tar_state_[1];
+			tar_state_[1] = tar_state_[2];
+			if (dx == 0 && dz > 0)
+			{
+				tar_state_[2] = 1;
+			}
+			else if (dx > 0 && dz > 0)
+			{
+				tar_state_[2] = 2;
+			}
+			else if (dx == 0 && dz == 0)
+			{
+				tar_state_[2] = 2;
+			}
+			else if (dx == 0 && dz < 0)
+			{
+				tar_state_[2] = 2;
+			}
+			else if (dx == 0 && dz < 0)
+			{
+				tar_state_[2] = 2;
+			}
+		}
+	}
 	
 public:
+	// 渲染对象的半径
+	static constexpr double r = 0.45;
 	// 小偷位置
 	double pos[2];
 	// 状态 0-自由移动 1-跑路 2-被捕
@@ -73,7 +129,7 @@ public:
 	// 操作执行
 	void action()
 	{
-		static double dis, dx, dz, ready_x, ready_z, tar_pos[2];
+		static double dis, dx, dz, tar_pos[2];
 		static auto at_new_pos = true, is_new_esc = true;
 		// 执行操作
 		switch (status)
@@ -82,11 +138,6 @@ public:
 			// 自由移动
 			if (at_new_pos)
 			{
-				// printf("Update new pos\n");
-				// double sss = 18 * double(rand()) / RAND_MAX + 1;
-				// tar_pos[0] = 18 * double(rand()) / RAND_MAX + 1;
-				// tar_pos[1] = 18 * double(rand()) / RAND_MAX + 1;
-
 				do
 				{
 					tar_pos[0] = double(rand() % 20) + 0.5;
@@ -101,6 +152,14 @@ public:
 			dx = v_thief * (tar_pos[0] - this->pos[0]) / dis;
 			dz = v_thief * (tar_pos[1] - this->pos[1]) / dis;
 			
+			glColor3d(1.0, 0.0, 0.0);
+			glBegin(GL_POLYGON);
+			for (int i = 0; i < 1000; i++)
+			{
+				glVertex3f(tar_pos[0] + 0.1 * cos(2 * pi * i / 1000), 0.1, tar_pos[1] + 0.1 * sin(2 * pi * i / 1000));   //定义顶点
+			}
+			glEnd();
+			
 			at_new_pos = dis <= 1;
 			break;
 		case 1:
@@ -109,6 +168,7 @@ public:
 			dis = get_dis(escape_pos_[0], escape_pos_[1]);
 			dx = v_thief * (escape_pos_[0] - this->pos[0]) / dis;
 			dz = v_thief * (escape_pos_[1] - this->pos[1]) / dis;
+
 			break;
 		case 2:
 			// 被捕
@@ -119,19 +179,17 @@ public:
 			break;
 		}
 		
-		// ready_x = pos[0] + dx;
-		// ready_z = pos[1] + dz;
-		if (check_barrier(dx, dz))
+		if (check_barrier(dx, dz) || check_lock(dx, dz))
 		{
-			if (!check_barrier(dx, 0))
+			if (!check_barrier(dx, 0) && !check_lock(dx, 0))
 			{
-				dx = v_thief;
+				dx = v_thief * dx / fabs(dx);
 				dz = 0;
 			}
-			else if (!check_barrier(0, dz))
+			else if (!check_barrier(0, dz) && !check_lock(0, dz))
 			{
 				dx = 0;
-				dz = v_thief;
+				dz = v_thief * dz / fabs(dz);
 			}
 			else
 			{
@@ -142,7 +200,7 @@ public:
 		}
 		pos[0] += dx;
 		pos[1] += dz;
-		// printf("X: %f Z: %f\n", pos[0], pos[1]);
+		printf("X: %f Z: %f %d %d %d %d \n", dx, dz, lock_[0], lock_[2], lock_[1], lock_[3]);
 	}
 	
 	void update(double po_pos[4][2], int po_state[4])
@@ -151,6 +209,11 @@ public:
 		double vector[4][2];
 		escape_pos_[0] = this->pos[0];
 		escape_pos_[1] = this->pos[1];
+
+		for (auto i = 0; i < 4; i++) 
+		{
+			lock_[i] = false;
+		}
 
 		for (auto i = 0; i < 4; i++)
 		{
@@ -211,7 +274,7 @@ public:
 			{
 				break;
 			}
-			if (i == 4)
+			if (i == 4 || ((lock_[0] || lock_[2]) && (lock_[1] || lock_[3])))
 			{
 				status = 2;
 			}
