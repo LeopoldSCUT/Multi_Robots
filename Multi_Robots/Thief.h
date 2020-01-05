@@ -89,18 +89,31 @@ private:
 			{
 				tar_state_[2] = 2;
 			}
-			else if (dx == 0 && dz == 0)
+			else if (dx > 0 && dz == 0)
 			{
-				tar_state_[2] = 2;
+				tar_state_[2] = 3;
+			}
+			else if (dx > 0 && dz < 0)
+			{
+				tar_state_[2] = 4;
 			}
 			else if (dx == 0 && dz < 0)
 			{
-				tar_state_[2] = 2;
+				tar_state_[2] = 5;
 			}
-			else if (dx == 0 && dz < 0)
+			else if (dx < 0 && dz < 0)
 			{
-				tar_state_[2] = 2;
+				tar_state_[2] = 6;
 			}
+			else if (dx < 0 && dz == 0)
+			{
+				tar_state_[2] = 7;
+			}
+			else if (dx < 0 && dz > 0)
+			{
+				tar_state_[2] = 8;
+			}
+			return true;
 		}
 	}
 	
@@ -200,6 +213,11 @@ public:
 		}
 		pos[0] += dx;
 		pos[1] += dz;
+		bool result = update_tar_state(dx, dz);
+		if (!result)
+		{
+			at_new_pos = true;
+		}
 		printf("X: %f Z: %f %d %d %d %d \n", dx, dz, lock_[0], lock_[2], lock_[1], lock_[3]);
 	}
 	
